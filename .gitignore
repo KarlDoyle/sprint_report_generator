@@ -1,0 +1,20 @@
+node_modules/
+.venv/
+venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+.next/
+.DS_Store
+
+# Generated sprint report run-artefacts (real Jira data — do not commit)
+sample/
+sprint-*/
+
+.env
+.env.*
+*.local
+secrets*
