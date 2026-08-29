@@ -8,6 +8,7 @@ __pycache__/
 dist/
 build/
 .next/
+*.egg-info/
 .DS_Store
 
 # Generated sprint report run-artefacts (real Jira data — do not commit)

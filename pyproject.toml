@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sprint-report-generator"
+version = "0.1.0"
+description = "Generate a 3-file sprint report (metrics summary, full issue export, readme) from a Jira sprint — standard library only, no external dependencies."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+srg = "sprint_report_generator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sprint_report_generator*"]
+
+[dependency-groups]
+dev = ["ruff>=0.11", "pytest>=7.4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

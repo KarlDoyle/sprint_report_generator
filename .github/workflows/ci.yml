@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Python equivalent of the standard Node ci.yml. Same idea: sequential, boring,
+# cheapest-first gates that mirror the local pre-push hook. ruff is the lint +
+# format gate; pytest is the test gate. No uv.lock is committed in this repo,
+# so `uv sync` resolves fresh each run — acceptable for a zero-runtime-dependency
+# project (dependencies = []); revisit if runtime deps are ever added.
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install
+        run: uv sync --dev
+
+      # 1. Lint (ruff) — fastest failure.
+      - name: Lint
+        run: uv run ruff check .
+
+      # 2. Format check (ruff).
+      - name: Format check
+        run: uv run ruff format --check .
+
+      # 3. Tests (pytest).
+      - name: Test
+        run: uv run pytest
