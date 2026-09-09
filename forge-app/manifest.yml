@@ -1,0 +1,42 @@
+# Forge app manifest — Sprint Health Report panel.
+#
+# Scaffold only: `app.id` below is a placeholder. Forge apps are identified by
+# an ID assigned when you register the app with your own Atlassian developer
+# account (`forge register`) — that step needs Karl's own account and cannot
+# be done from here. See forge-app/README.md for the full manual deploy path.
+#
+# Module choice: jira:projectPage — a full custom page inside a Jira Software
+# project, listed in the project sidebar. Picked over a dashboard gadget or
+# issue panel because the report is project/board-scoped, not per-issue, and
+# a director/TPM audience wants to open it deliberately rather than have it
+# always-on in a dashboard.
+#
+# UI Kit 2 (render: native, @forge/react) rather than Custom UI: no bundler
+# config to hand-maintain, and it inherits Jira's look and feel for free.
+
+modules:
+  jira:projectPage:
+    - key: sprint-health-panel
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: Sprint Health Report
+
+  function:
+    - key: resolver
+      handler: resolvers/index.handler
+
+resources:
+  - key: main
+    path: src/frontend
+
+permissions:
+  scopes:
+    # Read-only throughout — this app observes, it never writes back to Jira.
+    - read:jira-work
+    - read:sprint:jira-software
+    - read:board-scope:jira-software
+
+app:
+  id: "ari:cloud:ecosystem::app/REPLACE-WITH-YOUR-APP-ID"

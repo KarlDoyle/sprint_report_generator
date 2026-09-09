@@ -1,0 +1,17 @@
+{
+  "name": "sprint-health-forge-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Forge app scaffold: surfaces the sprint-health report (scope creep, execution focus, changelog-based mid-sprint-add detection) inside a Jira project.",
+  "scripts": {
+    "lint": "echo \"no JS lint configured yet — see forge-app/README.md\"",
+    "test": "node src/resolvers/__tests__/sprintHealth.test.js && node src/resolvers/__tests__/index.test.js"
+  },
+  "dependencies": {
+    "@forge/api": "^4",
+    "@forge/bridge": "^4",
+    "@forge/react": "^10",
+    "@forge/resolver": "^1",
+    "react": "^18"
+  }
+}

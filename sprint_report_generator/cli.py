@@ -29,6 +29,29 @@ JIRA_API_TOKEN = None  # e.g., "your-api-token"
 JIRA_PROJECT_KEY = None  # e.g., "PROJ" (optional, will auto-detect)
 JIRA_BOARD_ID = None  # e.g., 123 (optional, will auto-detect)
 JIRA_SPRINT_ID = None  # e.g., 12345 (optional, default sprint ID)
+# e.g., "Payments:101,Platform:102" (optional, multi-team rollup — see --team)
+JIRA_TEAM_SPRINTS = None
+
+
+def parse_team_sprints(pairs: list[str]) -> dict[str, int]:
+    """Parse ``["Payments:101", "Platform:102"]`` into ``{"Payments": 101, "Platform": 102}``.
+
+    Raises ValueError with a clear message on malformed entries — caught by
+    the caller and turned into a clean CLI error rather than a traceback.
+    """
+    team_sprint_ids: dict[str, int] = {}
+    for pair in pairs:
+        if ":" not in pair:
+            raise ValueError(f"Invalid --team value {pair!r} — expected NAME:SPRINT_ID")
+        name, _, sprint_id_str = pair.rpartition(":")
+        name = name.strip()
+        if not name:
+            raise ValueError(f"Invalid --team value {pair!r} — missing team name")
+        try:
+            team_sprint_ids[name] = int(sprint_id_str.strip())
+        except ValueError as e:
+            raise ValueError(f"Invalid --team value {pair!r} — sprint ID must be a number") from e
+    return team_sprint_ids
 
 
 def get_config() -> dict[str, str]:
@@ -42,6 +65,7 @@ def get_config() -> dict[str, str]:
     config["project_key"] = JIRA_PROJECT_KEY or os.getenv("JIRA_PROJECT_KEY")
     config["board_id"] = JIRA_BOARD_ID or os.getenv("JIRA_BOARD_ID")
     config["sprint_id"] = JIRA_SPRINT_ID or os.getenv("JIRA_SPRINT_ID")
+    config["team_sprints"] = JIRA_TEAM_SPRINTS or os.getenv("JIRA_TEAM_SPRINTS")
 
     # Validate required fields
     required = ["base_url", "username", "api_token"]
@@ -70,18 +94,25 @@ Examples:
     python -m sprint_report_generator  # Uses JIRA_SPRINT_ID from environment
 
 Environment Variables:
-    JIRA_BASE_URL     - Jira instance URL
-    JIRA_USERNAME     - Jira email/username
-    JIRA_API_TOKEN    - Jira API token
-    JIRA_PROJECT_KEY  - Project key (optional)
-    JIRA_BOARD_ID     - Board ID (optional)
-    JIRA_SPRINT_ID    - Default sprint ID (optional)
+    JIRA_BASE_URL      - Jira instance URL
+    JIRA_USERNAME      - Jira email/username
+    JIRA_API_TOKEN     - Jira API token
+    JIRA_PROJECT_KEY   - Project key (optional)
+    JIRA_BOARD_ID      - Board ID (optional)
+    JIRA_SPRINT_ID     - Default sprint ID (optional)
+    JIRA_TEAM_SPRINTS  - Multi-team rollup, e.g. "Payments:101,Platform:102" (optional)
+
+Multi-team rollup (TPM/director cross-team view):
+    python -m sprint_report_generator --team Payments:101 --team Platform:102
+    (repeatable --team NAME:SPRINT_ID, or set JIRA_TEAM_SPRINTS)
+    Writes one full report per team plus rollup_summary.md.
 
 Output:
-    Creates directory with 3 files:
+    Single-sprint mode creates a directory with 3 files:
     - sprint_summary.md (metrics and analysis)
     - issues.json (all sprint issues in JSON)
     - readme.md (explanation of files)
+    Multi-team mode creates one such directory per team, plus rollup_summary.md.
         """,
     )
 
@@ -99,28 +130,55 @@ Output:
         help="Output directory for reports (default: current working directory)",
     )
 
+    parser.add_argument(
+        "--team",
+        action="append",
+        metavar="NAME:SPRINT_ID",
+        help=(
+            "Add a team to a multi-team rollup, e.g. --team Payments:101. Repeatable. "
+            "When given, generates one report per team plus rollup_summary.md instead of "
+            "the single positional sprint_id report."
+        ),
+    )
+
     args = parser.parse_args()
 
     # Get configuration first to check for default sprint ID
     config = get_config()
 
-    # Determine sprint ID - from argument or environment variable
-    sprint_id = args.sprint_id
-    if sprint_id is None:
-        if config["sprint_id"]:
-            try:
-                sprint_id = int(config["sprint_id"])
-                print(f"Using default sprint ID from environment: {sprint_id}")
-            except (ValueError, TypeError):
-                print("❌ Invalid JIRA_SPRINT_ID in environment - must be a number")
-                sys.exit(1)
-        else:
-            print(
-                "❌ Sprint ID required - provide as argument or set JIRA_SPRINT_ID "
-                "environment variable"
-            )
-            parser.print_help()
+    # Multi-team rollup takes priority over single-sprint mode when configured
+    # (via --team or JIRA_TEAM_SPRINTS).
+    team_pairs = args.team
+    if not team_pairs and config["team_sprints"]:
+        team_pairs = [p.strip() for p in config["team_sprints"].split(",") if p.strip()]
+
+    team_sprint_ids = None
+    if team_pairs:
+        try:
+            team_sprint_ids = parse_team_sprints(team_pairs)
+        except ValueError as e:
+            print(f"❌ {e}")
             sys.exit(1)
+
+    sprint_id = None
+    if team_sprint_ids is None:
+        # Determine sprint ID - from argument or environment variable
+        sprint_id = args.sprint_id
+        if sprint_id is None:
+            if config["sprint_id"]:
+                try:
+                    sprint_id = int(config["sprint_id"])
+                    print(f"Using default sprint ID from environment: {sprint_id}")
+                except (ValueError, TypeError):
+                    print("❌ Invalid JIRA_SPRINT_ID in environment - must be a number")
+                    sys.exit(1)
+            else:
+                print(
+                    "❌ Sprint ID required - provide as argument, set JIRA_SPRINT_ID, "
+                    "or use --team for a multi-team rollup"
+                )
+                parser.print_help()
+                sys.exit(1)
 
     # Set default output directory to current working directory
     if args.output_dir is None:
@@ -137,8 +195,28 @@ Output:
             api_token=config["api_token"],
         )
 
-        # Generate report
         generator = SprintReportGenerator(jira_client)
+
+        if team_sprint_ids is not None:
+            multi_result = generator.generate_multi_team_report(team_sprint_ids, args.output_dir)
+            rollup = multi_result["rollup"]
+
+            print("\n" + "=" * 60)
+            print("📊 Multi-Team Sprint Rollup")
+            print("=" * 60)
+            print(f"Teams: {rollup['team_count']}")
+            print(
+                f"Issues: {rollup['totals']['total_completed']}/"
+                f"{rollup['totals']['total_issues']} completed"
+            )
+            print(f"Cross-team execution focus ratio: {rollup['execution_focus_ratio']}%")
+            print(f"Cross-team scope creep ratio: {rollup['scope_creep_ratio']}%")
+            print(f"Output: {multi_result['output_directory']}")
+            print("=" * 60)
+            print("✅ Multi-team rollup complete!")
+            return
+
+        # Generate report
         result = generator.generate_report(sprint_id, args.output_dir)
 
         # Print summary
