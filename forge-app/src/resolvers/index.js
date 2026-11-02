@@ -2,8 +2,8 @@
  * Forge resolver — backend function invoked by the frontend panel
  * (src/frontend/index.jsx) via @forge/bridge's `invoke()`.
  *
- * Fetches sprint + issue data through Jira's Agile REST API using the app's
- * own Forge-managed auth (api.asApp()), then hands off to sprintHealth.js
+ * Fetches sprint + issue data through Jira's Agile REST API using the invoking
+ * user's Jira permissions (api.asUser()), then hands off to sprintHealth.js
  * for the metrics. No Jira credentials are handled here — that's the whole
  * point of running this as a Forge app instead of the standalone CLI, which
  * needs JIRA_API_TOKEN.
@@ -19,7 +19,7 @@ const resolver = new Resolver();
 const MAX_RESULTS = 100;
 
 async function fetchSprint(sprintId) {
-  const res = await api.asApp().requestJira(route`/rest/agile/1.0/sprint/${sprintId}`);
+  const res = await api.asUser().requestJira(route`/rest/agile/1.0/sprint/${sprintId}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch sprint ${sprintId}: HTTP ${res.status}`);
   }
@@ -33,7 +33,7 @@ async function fetchSprintIssues(sprintId) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const res = await api
-      .asApp()
+      .asUser()
       .requestJira(
         route`/rest/agile/1.0/sprint/${sprintId}/issue?expand=changelog&startAt=${startAt}&maxResults=${MAX_RESULTS}`
       );
@@ -73,7 +73,7 @@ async function fetchRemovedSprintIssues(sprintId, excludeKeys) {
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const res = await api.asApp().requestJira(route`/rest/api/3/search`, {
+      const res = await api.asUser().requestJira(route`/rest/api/3/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,8 +105,8 @@ async function fetchRemovedSprintIssues(sprintId, excludeKeys) {
 
 resolver.define("getSprintHealth", async (req) => {
   const { sprintId } = req.payload;
-  if (!sprintId) {
-    throw new Error("sprintId is required");
+  if (!Number.isSafeInteger(sprintId) || sprintId <= 0) {
+    throw new Error("sprintId must be a positive integer");
   }
 
   const sprint = await fetchSprint(sprintId);

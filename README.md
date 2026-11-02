@@ -74,7 +74,7 @@ This writes a report directory for each team plus `rollup_summary.md`. You can a
 
 ## Forge app (Jira panel scaffold)
 
-`forge-app/` is an undeployed scaffold for showing this report in a Jira Software project. It requires an Atlassian developer account to deploy. Review [the Forge app README](forge-app/README.md) for what is implemented and the remaining manual deployment steps. The resolver's Jira access must be checked against the invoking user's permissions before deployment.
+`forge-app/` is an undeployed scaffold for showing this report in a Jira Software project. It requires an Atlassian developer account to deploy. Review [the Forge app README](forge-app/README.md) for what is implemented and the remaining manual deployment steps. The resolver uses the invoking user's Jira permissions and validates the sprint ID before making Jira requests.
 
 ## Data handling
 

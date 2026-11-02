@@ -14,7 +14,8 @@ up to that point (manifest, resolver, panel) is built and ready to review.
 - `manifest.yml` — a `jira:projectPage` module (a custom page in the project
   sidebar), UI Kit 2 (`render: native`, `@forge/react`), read-only scopes.
 - `src/resolvers/index.js` + `sprintHealth.js` — backend: fetches the sprint
-  and its issues (with `expand=changelog`) via `api.asApp().requestJira()`,
+  and its issues (with `expand=changelog`) via
+  `api.asUser().requestJira()` using the invoking user's Jira permissions,
   plus the same "added then removed" JQL lookup the Python client uses
   (`sprint was <id> AND sprint != <id>`), then computes the metrics.
 - `src/frontend/index.jsx` — the panel: sprint ID entry, load button, and the
