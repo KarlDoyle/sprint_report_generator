@@ -16,7 +16,7 @@ def test_jira_issue_parses_basic_fields() -> None:
             summary="Fix the thing",
             status="In Progress",
             issue_type="Bug",
-            assignee="Karl Doyle",
+            assignee="Jane Doe",
             priority="Highest",
             components=["backend", "api"],
             labels=["urgent"],
@@ -26,7 +26,7 @@ def test_jira_issue_parses_basic_fields() -> None:
     assert issue.summary == "Fix the thing"
     assert issue.status == "In Progress"
     assert issue.issue_type == "Bug"
-    assert issue.assignee == "Karl Doyle"
+    assert issue.assignee == "Jane Doe"
     assert issue.priority == "Highest"
     assert issue.components == ["backend", "api"]
     assert issue.labels == ["urgent"]
