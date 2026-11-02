@@ -69,6 +69,14 @@ Jira Software project — Atlassian's current framework for Jira integrations
 requires an Atlassian developer account. See `forge-app/README.md` for what's
 built, what's intentionally left out, and the exact manual steps to deploy it.
 
+## Data handling
+
+The generated `issues.json` contains Jira issue data, including descriptions,
+assignee display names, labels, and timestamps. Treat generated reports as
+confidential and do not commit or share them unless you have permission to do
+so. The [synthetic example](examples/synthetic-report.md) uses fictional data
+only and is safe to publish.
+
 ## Development
 
 ```

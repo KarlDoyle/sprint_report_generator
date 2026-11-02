@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCAN_ROOTS = ["sprint_report_generator", "tests", "scripts", "docs", ".github"]
+SCAN_ROOTS = ["sprint_report_generator", "forge-app", "tests", "scripts", "docs", ".github"]
 SELF = Path(__file__).resolve()
 
 TOKEN_PATTERNS = [

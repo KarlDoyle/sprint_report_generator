@@ -10,9 +10,8 @@ permissions:
 
 # Python equivalent of the standard Node ci.yml. Same idea: sequential, boring,
 # cheapest-first gates that mirror the local pre-push hook. ruff is the lint +
-# format gate; pytest is the test gate. No uv.lock is committed in this repo,
-# so `uv sync` resolves fresh each run — acceptable for a zero-runtime-dependency
-# project (dependencies = []); revisit if runtime deps are ever added.
+# format gate; pytest is the test gate. uv.lock is committed, so --locked keeps
+# CI reproducible and fails if project metadata and the lockfile drift apart.
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -29,7 +28,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Install
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       # 1. Lint (ruff) — fastest failure.
       - name: Lint

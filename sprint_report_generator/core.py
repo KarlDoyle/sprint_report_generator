@@ -31,6 +31,19 @@ from typing import Any
 
 class SimpleHttpClient:
     def __init__(self, base_url: str, username: str, api_token: str):
+        parsed_url = urllib.parse.urlsplit(base_url)
+        if (
+            parsed_url.scheme.lower() != "https"
+            or not parsed_url.hostname
+            or parsed_url.username is not None
+            or parsed_url.password is not None
+            or parsed_url.query
+            or parsed_url.fragment
+        ):
+            raise ValueError(
+                "JIRA_BASE_URL must be a trusted HTTPS Jira URL without embedded "
+                "credentials, query, or fragment"
+            )
         self.base_url = base_url.rstrip("/")
         self.username = username
         self.api_token = api_token
@@ -54,7 +67,7 @@ class SimpleHttpClient:
         request.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 data = response.read().decode("utf-8")
                 return json.loads(data)
         except urllib.error.HTTPError as e:
