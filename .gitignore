@@ -14,6 +14,7 @@ build/
 # Generated sprint report run-artefacts (real Jira data — do not commit)
 sample/
 sprint-*/
+rollup_summary.md
 
 .env
 .env.*
